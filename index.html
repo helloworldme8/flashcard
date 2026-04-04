@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcard Game</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+  background: #f0f0f5;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 40px 16px;
+}
+
+#app {
+  width: 100%;
+  max-width: 480px;
+  background: white;
+  border-radius: 20px;
+  padding: 32px 28px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #111;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 24px;
+}
+
+input[type="email"], input[type="text"] {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  font-size: 15px;
+  color: #111;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 12px;
+}
+
+input:focus { border-color: #6c63ff; }
+
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.btn:active { transform: scale(0.98); }
+
+.btn-primary {
+  background: #111;
+  color: white;
+}
+
+.btn-primary:hover { background: #333; }
+
+.btn-secondary {
+  background: #f0f0f5;
+  color: #111;
+  margin-top: 10px;
+}
+
+.btn-secondary:hover { background: #e4e4ee; }
+
+.badge {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 16px;
+}
+
+.badge-level {
+  background: #ede9ff;
+  color: #5b4fcf;
+}
+
+.badge-time {
+  background: #fff3e0;
+  color: #e65100;
+  margin-left: 6px;
+}
+
+.question-text {
+  font-size: 18px;
+  line-height: 1.6;
+  color: #111;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.feedback-box {
+  background: #f7f7fb;
+  border-left: 3px solid #6c63ff;
+  border-radius: 0 12px 12px 0;
+  padding: 16px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.stat-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  flex: 1;
+  background: #f7f7fb;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111;
+}
+
+.timer-bar-wrap {
+  width: 100%;
+  height: 4px;
+  background: #eee;
+  border-radius: 2px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.timer-bar {
+  height: 4px;
+  background: #6c63ff;
+  border-radius: 2px;
+  width: 0%;
+  transition: width 1s linear;
+}
+
+.loading {
+  text-align: center;
+  color: #888;
+  font-size: 15px;
+  padding: 20px 0;
+}
+
+.error {
+  background: #fff0f0;
+  border-left: 3px solid #e53e3e;
+  border-radius: 0 10px 10px 0;
+  padding: 14px;
+  color: #c53030;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #f0f0f0;
+  margin: 20px 0;
+}
+</style>
+</head>
+
+<body>
+<div id="app">
+
+  <!-- START SCREEN -->
+  <div id="screen-start">
+    <h1>Flashcard Game</h1>
+    <p class="subtitle">Enter your email to begin. Your level adjusts automatically.</p>
+    <input type="email" id="email" placeholder="your@email.com" />
+    <button class="btn btn-primary" onclick="startGame()">Start</button>
+  </div>
+
+  <!-- QUESTION SCREEN -->
+  <div id="screen-question" style="display:none">
+    <div id="q-badges">
+      <span class="badge badge-level" id="level-badge">Level: Beginning</span>
+    </div>
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timer-bar"></div>
+    </div>
+    <p class="question-text" id="question-text"></p>
+    <input type="text" id="answer" placeholder="Type your answer here..." />
+    <button class="btn btn-primary" onclick="submitAnswer()">Submit answer</button>
+  </div>
+
+  <!-- FEEDBACK SCREEN -->
+  <div id="screen-feedback" style="display:none">
+    <div id="f-badges">
+      <span class="badge badge-level" id="feedback-level-badge">Level: Beginning</span>
+      <span class="badge badge-time" id="time-badge">0s</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">Score</div>
+        <div class="stat-value" id="score-display">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Time taken</div>
+        <div class="stat-value" id="time-display">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Questions</div>
+        <div class="stat-value" id="count-display">0</div>
+      </div>
+    </div>
+    <div class="feedback-box" id="feedback-text"></div>
+    <button class="btn btn-primary" onclick="startGame()">Next question</button>
+    <button class="btn btn-secondary" onclick="resetGame()">Start over</button>
+  </div>
+
+</div>
+
+<script>
+const WEBHOOK_URL = "https://jdaidev.app.n8n.cloud/webhook-test/flashcard-start";
+
+let currentLevel = localStorage.getItem("flashcard_level") || "Beginning";
+let questionStartTime = null;
+let timerInterval = null;
+let questionCount = parseInt(localStorage.getItem("flashcard_count") || "0");
+
+function show(screenId) {
+  ["screen-start","screen-question","screen-feedback"].forEach(id => {
+    document.getElementById(id).style.display = id === screenId ? "block" : "none";
+  });
+}
+
+function startTimer() {
+  questionStartTime = Date.now();
+  const bar = document.getElementById("timer-bar");
+  bar.style.width = "0%";
+  let elapsed = 0;
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    elapsed++;
+    const pct = Math.min((elapsed / 180) * 100, 100);
+    bar.style.width = pct + "%";
+    if (elapsed >= 180) clearInterval(timerInterval);
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  return questionStartTime ? Math.round((Date.now() - questionStartTime) / 1000) : 0;
+}
+
+async function startGame() {
+  const email = document.getElementById("email") 
+    ? document.getElementById("email").value.trim() 
+    : localStorage.getItem("flashcard_email") || "";
+
+  if (!email) { show("screen-start"); return; }
+  localStorage.setItem("flashcard_email", email);
+
+  show("screen-question");
+  document.getElementById("question-text").textContent = "Loading your question...";
+  document.getElementById("answer").value = "";
+  document.getElementById("level-badge").textContent = "Level: " + currentLevel;
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        level: currentLevel,
+        action: "get_question"
+      })
+    });
+
+    if (!res.ok) throw new Error("Server error " + res.status);
+    const data = await res.json();
+
+    document.getElementById("question-text").textContent = data.question;
+    startTimer();
+
+  } catch (err) {
+    document.getElementById("question-text").innerHTML =
+      '<span class="error">Could not load question. Check your connection and try again.</span>';
+    console.error(err);
+  }
+}
+
+async function submitAnswer() {
+  const email = localStorage.getItem("flashcard_email") || "";
+  const answer = document.getElementById("answer").value.trim();
+
+  if (!answer) {
+    document.getElementById("answer").focus();
+    document.getElementById("answer").style.borderColor = "#e53e3e";
+    setTimeout(() => document.getElementById("answer").style.borderColor = "#ddd", 1500);
+    return;
+  }
+
+  const timeToAnswer = stopTimer();
+
+  document.getElementById("question-text").textContent = "Checking your answer...";
+  document.getElementById("answer").disabled = true;
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        answer,
+        level: currentLevel,
+        action: "check_answer",
+        time_to_answer: timeToAnswer
+      })
+    });
+
+    if (!res.ok) throw new Error("Server error " + res.status);
+    const data = await res.json();
+
+    if (data.new_level) {
+      currentLevel = data.new_level;
+      localStorage.setItem("flashcard_level", currentLevel);
+    }
+
+    questionCount++;
+    localStorage.setItem("flashcard_count", questionCount);
+
+    const scoreNum = Math.round((data.score || 0) * 100);
+    const timeLabel = timeToAnswer < 60
+      ? timeToAnswer + "s"
+      : Math.floor(timeToAnswer / 60) + "m " + (timeToAnswer % 60) + "s";
+
+    document.getElementById("feedback-level-badge").textContent = "Level: " + currentLevel;
+    document.getElementById("time-badge").textContent = timeLabel;
+    document.getElementById("score-display").textContent = scoreNum + "%";
+    document.getElementById("time-display").textContent = timeLabel;
+    document.getElementById("count-display").textContent = questionCount;
+    document.getElementById("feedback-text").textContent = data.feedback || "No feedback returned.";
+
+    document.getElementById("answer").disabled = false;
+    show("screen-feedback");
+
+  } catch (err) {
+    document.getElementById("question-text").innerHTML =
+      '<span class="error">Could not check answer. Try again.</span>';
+    document.getElementById("answer").disabled = false;
+    console.error(err);
+  }
+}
+
+function resetGame() {
+  currentLevel = "Beginning";
+  questionCount = 0;
+  localStorage.setItem("flashcard_level", "Beginning");
+  localStorage.setItem("flashcard_count", "0");
+  localStorage.removeItem("flashcard_email");
+  show("screen-start");
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter") {
+    const qs = document.getElementById("screen-question");
+    const ss = document.getElementById("screen-start");
+    if (qs && qs.style.display !== "none") submitAnswer();
+    if (ss && ss.style.display !== "none") startGame();
+  }
+});
+</script>
+</body>
+</html>
